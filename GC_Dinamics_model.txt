@@ -1,0 +1,507 @@
+%% ========================================================================
+%  KAP-GKI FRAMEWORK FOR GLOBULAR CLUSTER KINEMATICS
+%  ========================================================================
+%  This script reproduces the analysis of Turaev et al. (MNRAS, 2026)
+%
+%  Computes:
+%    - Global Kinematic Anisotropy Parameter (KAP) with full error propagation
+%    - Global Kinematic Index (GKI) via weighted linear regression
+%    - Degeneracy metric Ds = Var(beta)/(|KAP|+eps)
+%    - Bootstrap, jackknife, Monte Carlo, residual diagnostics
+%    - BIC, chi^2, R^2, power analysis, robustness score
+%
+%  Input: CSV file with columns:
+%         Bin, N_stars, R_median, sigma, err_sigma, sigma_r, err_sigma_r, sigma_t, err_sigma_t
+%  (Compatible with HACKS/HST output format)
+%
+%  Output: Figures, CSV tables, .mat file with all results
+%  ========================================================================
+
+
+clear; clc; close all;
+set(0, 'DefaultAxesFontSize', 12, 'DefaultLineLineWidth', 1.5);
+warning('off', 'all');
+
+%% ========================= USER INPUT ===================================
+% Edit these lines for your cluster
+datafile = 'cluster_data.csv';     % Path to input CSV file
+cluster_name = 'cluster_name';         % Name for output files
+n_bootstrap = 10000;               % Number of bootstrap resamples
+n_mc = 10000;                      % Monte Carlo realisations
+save_figures = true;               % Save figures as PNG
+% =========================================================================
+
+fprintf('========================================\n');
+fprintf('KAP-GKI Analysis for %s\n', cluster_name);
+fprintf('========================================\n\n');
+
+%% 1. DATA IMPORT AND PREPROCESSING
+% Load data: expected columns [Bin, N_stars, R, sigma, err_sigma, sigma_r, err_sigma_r, sigma_t, err_sigma_t]
+if ~exist(datafile, 'file')
+    error('Data file not found: %s', datafile);
+end
+T = readtable(datafile);
+% Assume columns are in order
+if width(T) >= 9
+    bin_num = T{:,1};
+    n_stars = T{:,2};
+    R = T{:,3};
+    sigma = T{:,4};
+    err_sigma = T{:,5};
+    sigma_r = T{:,6};
+    err_sigma_r = T{:,7};
+    sigma_t = T{:,8};
+    err_sigma_t = T{:,9};
+else
+    error('Input file must have at least 9 columns');
+end
+
+% Ensure positive values
+sigma = abs(sigma); sigma_r = abs(sigma_r); sigma_t = abs(sigma_t);
+err_sigma = max(err_sigma, 1e-6);
+err_sigma_r = max(err_sigma_r, 1e-6);
+err_sigma_t = max(err_sigma_t, 1e-6);
+
+n_bins = length(R);
+fprintf('Data loaded: %d radial bins\n', n_bins);
+fprintf('Radius range: %.1f to %.1f arcsec\n', min(R), max(R));
+fprintf('Number of stars: %d\n', sum(n_stars));
+fprintf('Average sigma: %.3f ± %.3f mas/yr\n\n', mean(sigma), std(sigma));
+
+%% 2. FIGURE 1: VELOCITY DISPERSION PROFILES
+if save_figures
+    fprintf('Generating Figure 1: Velocity dispersion profiles...\n');
+    figure('Position', [100, 100, 900, 300]);
+
+    % Subplot 1: Combined velocity dispersion
+    subplot(1,3,1);
+    errorbar(R, sigma, err_sigma, 'ko-', 'MarkerFaceColor', 'k', 'CapSize', 0);
+    xlabel('Radius (arcsec)');
+    ylabel('\sigma (mas yr^{-1})');
+    title('(a) Combined Velocity Dispersion');
+    grid on; box on;
+
+    % Subplot 2: Radial and tangential
+    subplot(1,3,2);
+    hold on;
+    errorbar(R, sigma_r, err_sigma_r, 'ro-', 'MarkerFaceColor', 'r', 'CapSize', 0, 'DisplayName', '\sigma_r');
+    errorbar(R, sigma_t, err_sigma_t, 'bo-', 'MarkerFaceColor', 'b', 'CapSize', 0, 'DisplayName', '\sigma_t');
+    xlabel('Radius (arcsec)');
+    ylabel('\sigma (mas yr^{-1})');
+    title('(b) Radial and Tangential Components');
+    legend('Location', 'northeast');
+    grid on; box on;
+
+    % Subplot 3: Ratio sigma_t/sigma_r
+    subplot(1,3,3);
+    ratio = sigma_t ./ sigma_r;
+    err_ratio = ratio .* sqrt((err_sigma_t./sigma_t).^2 + (err_sigma_r./sigma_r).^2);
+    errorbar(R, ratio, err_ratio, 'ko-', 'MarkerFaceColor', 'k', 'CapSize', 0);
+    hold on;
+    plot([min(R), max(R)], [1, 1], 'r--', 'LineWidth', 1.5);
+    xlabel('Radius (arcsec)');
+    ylabel('\sigma_t / \sigma_r');
+    title('(c) Anisotropy Ratio');
+    grid on; box on;
+
+    sgtitle(sprintf('Figure 1: Velocity Dispersion Profiles for %s', cluster_name));
+    saveas(gcf, sprintf('%s_fig1_profiles.png', cluster_name), 'png');
+    fprintf('Figure 1 saved as %s_fig1_profiles.png\n\n', cluster_name);
+end
+
+%% 3. GLOBAL KINEMATIC ANISOTROPY PARAMETER (KAP) – FULL ERROR PROPAGATION
+fprintf('========================================\n');
+fprintf('3. GLOBAL KINEMATIC ANISOTROPY PARAMETER (KAP)\n');
+fprintf('========================================\n\n');
+
+% Squared dispersions and their errors
+sigma_r2 = sigma_r.^2;
+sigma_t2 = sigma_t.^2;
+err_sigma_r2 = 2 * sigma_r .* err_sigma_r;
+err_sigma_t2 = 2 * sigma_t .* err_sigma_t;
+
+% Per-bin quantities
+num = sigma_t2 - sigma_r2;      % a_i
+den = sigma_t2 + sigma_r2;      % b_i
+
+% Variances and covariance per bin
+var_a = (2*sigma_t.*err_sigma_t).^2 + (2*sigma_r.*err_sigma_r).^2;
+var_b = (2*sigma_t.*err_sigma_t).^2 + (2*sigma_r.*err_sigma_r).^2;  % same form
+cov_ab = (2*sigma_t.*err_sigma_t).^2 - (2*sigma_r.*err_sigma_r).^2;
+
+% Weights: w_i = 1 / var(a_i)
+weights = 1 ./ (var_a + 1e-12);
+
+% Weighted sums
+A = sum(weights .* num);
+B = sum(weights .* den);
+KAP = A / B;
+
+% Error propagation for KAP
+var_A = sum(weights.^2 .* var_a);
+var_B = sum(weights.^2 .* var_b);
+cov_AB = sum(weights.^2 .* cov_ab);
+var_KAP = (1/B^2)*var_A + (KAP^2/B^2)*var_B - 2*(KAP/B^2)*cov_AB;
+KAP_err = sqrt(var_KAP);
+
+fprintf('KAP = %.4f ± %.4f\n', KAP, KAP_err);
+fprintf('KAP SNR = %.1f\n', abs(KAP/KAP_err));
+
+% Interpretation
+if abs(KAP/KAP_err) < 2
+    fprintf('Interpretation: Consistent with global isotropy (|KAP| < 2σ)\n');
+elseif KAP < -2*KAP_err
+    fprintf('Interpretation: Significant radial anisotropy\n');
+elseif KAP > 2*KAP_err
+    fprintf('Interpretation: Significant tangential anisotropy\n');
+end
+
+% Local beta(r)
+beta = 1 - sigma_t2 ./ sigma_r2;
+err_beta = sqrt((2*sigma_t.*err_sigma_t./sigma_r2).^2 + ...
+                (2*sigma_t2.*err_sigma_r./sigma_r.^3).^2);
+fprintf('Local β(r) range: %.3f to %.3f\n', min(beta), max(beta));
+
+% Degeneracy metric Ds
+eps_reg = 0.01;
+Var_beta = var(beta, 'omitnan');
+Ds = Var_beta / (abs(KAP) + eps_reg);
+fprintf('Degeneracy metric Ds = %.4f\n', Ds);
+
+%% 4. GLOBAL KINEMATIC INDEX (GKI) – WEIGHTED LOG-LOG REGRESSION
+fprintf('\n========================================\n');
+fprintf('4. GLOBAL KINEMATIC INDEX (GKI)\n');
+fprintf('========================================\n\n');
+
+% Log-transform
+logR = log(R);
+logSigma = log(sigma);
+err_logSigma = err_sigma ./ sigma;
+
+% Weighted least squares
+weights_GKI = 1 ./ (err_logSigma.^2 + 1e-12);
+X = [ones(size(logR)), logR];
+W = diag(weights_GKI);
+y = logSigma;
+
+theta = (X' * W * X) \ (X' * W * y);
+alpha = theta(1);
+GKI = theta(2);
+
+% Covariance and errors
+cov_theta = inv(X' * W * X);
+alpha_err = sqrt(cov_theta(1,1));
+GKI_err = sqrt(cov_theta(2,2));
+
+% R-squared
+y_pred = X*theta;
+SSres = sum(weights_GKI .* (y - y_pred).^2);
+SStot = sum(weights_GKI .* (y - mean(y)).^2);
+R2 = 1 - SSres/SStot;
+
+fprintf('ln(σ) = α + β·ln(R)\n');
+fprintf('α = %.4f ± %.4f\n', alpha, alpha_err);
+fprintf('β (GKI) = %.4f ± %.4f\n', GKI, GKI_err);
+fprintf('R² = %.4f\n', R2);
+
+% GKI interpretation
+if GKI > 0.1
+    fprintf('Interpretation: Rising velocity dispersion profile\n');
+elseif GKI < -0.1
+    fprintf('Interpretation: Declining velocity dispersion profile\n');
+else
+    fprintf('Interpretation: Flat velocity dispersion profile\n');
+end
+
+%% 5. FIGURE 2: GKI DETERMINATION AND ANISOTROPY PLOT
+if save_figures
+    fprintf('\nGenerating Figure 2: GKI and anisotropy plot...\n');
+    figure('Position', [100, 100, 1000, 400]);
+
+    % Subplot 1: Log-log with fit
+    subplot(1,2,1);
+    errorbar(logR, logSigma, err_logSigma, 'ko', 'MarkerFaceColor', 'k', ...
+        'CapSize', 0, 'MarkerSize', 8);
+    hold on;
+    logR_fit = linspace(min(logR), max(logR), 100)';
+    logSigma_fit = alpha + GKI * logR_fit;
+    plot(logR_fit, logSigma_fit, 'r-', 'LineWidth', 2);
+    X_fit = [ones(size(logR_fit)), logR_fit];
+    sigma_fit = sqrt(diag(X_fit * cov_theta * X_fit'));
+    upper = logSigma_fit + 1.96 * sigma_fit;
+    lower = logSigma_fit - 1.96 * sigma_fit;
+    fill([logR_fit; flipud(logR_fit)], [upper; flipud(lower)], ...
+         [1,0.8,0.8], 'EdgeColor', 'none', 'FaceAlpha', 0.3);
+    xlabel('ln(R [arcsec])');
+    ylabel('ln(\sigma [mas yr^{-1}])');
+    title(sprintf('GKI = %.3f ± %.3f (R²=%.3f)', GKI, GKI_err, R2));
+    grid on; legend('Data', 'Fit', '95% CI', 'Location','southwest');
+
+    % Subplot 2: sigma_t vs sigma_r
+    subplot(1,2,2);
+    errorbar(sigma_r, sigma_t, err_sigma_t, err_sigma_t, err_sigma_r, err_sigma_r, ...
+             'ko', 'MarkerFaceColor', 'k', 'CapSize', 0, 'MarkerSize', 8);
+    hold on;
+    for i = 1:length(sigma_r)
+        plot([sigma_r(i)-err_sigma_r(i), sigma_r(i)+err_sigma_r(i)], ...
+             [sigma_t(i), sigma_t(i)], 'k-', 'LineWidth', 0.5);
+        plot([sigma_r(i), sigma_r(i)], ...
+             [sigma_t(i)-err_sigma_t(i), sigma_t(i)+err_sigma_t(i)], 'k-', 'LineWidth', 0.5);
+    end
+    plot([0.9*min(sigma_r), 1.1*max(sigma_r)], ...
+         [0.9*min(sigma_r), 1.1*max(sigma_r)], 'r--', 'LineWidth', 2);
+    xlabel('\sigma_r (mas yr^{-1})');
+    ylabel('\sigma_t (mas yr^{-1})');
+    title(sprintf('KAP = %.3f ± %.3f, Ds = %.2f', KAP, KAP_err, Ds));
+    axis equal; grid on;
+    sgtitle(sprintf('Figure 2: Global Kinematic Analysis of %s', cluster_name));
+    saveas(gcf, sprintf('%s_fig2_GKI_anisotropy.png', cluster_name), 'png');
+    fprintf('Figure 2 saved\n');
+end
+
+%% 6. PARAMETRIC BOOTSTRAP
+fprintf('\n========================================\n');
+fprintf('6. BOOTSTRAP ANALYSIS (parametric, N=%d)\n', n_bootstrap);
+fprintf('========================================\n\n');
+
+KAP_boot = zeros(n_bootstrap,1);
+GKI_boot = zeros(n_bootstrap,1);
+Ds_boot = zeros(n_bootstrap,1);
+
+for i = 1:n_bootstrap
+    % Add Gaussian noise to original measurements
+    sigma_r_boot = sigma_r + randn(size(sigma_r)) .* err_sigma_r;
+    sigma_t_boot = sigma_t + randn(size(sigma_t)) .* err_sigma_t;
+    sigma_boot = sigma + randn(size(sigma)) .* err_sigma;
+    sigma_r_boot = abs(sigma_r_boot);
+    sigma_t_boot = abs(sigma_t_boot);
+    sigma_boot = abs(sigma_boot);
+    
+    % KAP for this realisation (using same weighting scheme)
+    sr2 = sigma_r_boot.^2;
+    st2 = sigma_t_boot.^2;
+    num_b = st2 - sr2;
+    den_b = st2 + sr2;
+    err_sr2_b = 2 * sigma_r_boot .* err_sigma_r;
+    err_st2_b = 2 * sigma_t_boot .* err_sigma_t;
+    var_a_b = (err_st2_b).^2 + (err_sr2_b).^2;
+    w_b = 1 ./ (var_a_b + 1e-12);
+    KAP_boot(i) = sum(w_b .* num_b) / sum(w_b .* den_b);
+    
+    % GKI
+    logR_b = log(R);
+    logS_b = log(sigma_boot);
+    err_logS_b = err_sigma ./ sigma_boot;
+    w_gki = 1 ./ (err_logS_b.^2 + 1e-12);
+    Xb = [ones(size(logR_b)), logR_b];
+    theta_b = (Xb' * diag(w_gki) * Xb) \ (Xb' * diag(w_gki) * logS_b);
+    GKI_boot(i) = theta_b(2);
+    
+    % Ds
+    beta_b = 1 - st2 ./ sr2;
+    Ds_boot(i) = var(beta_b, 'omitnan') / (abs(KAP_boot(i)) + eps_reg);
+end
+
+KAP_med = median(KAP_boot);
+KAP_CI68 = quantile(KAP_boot, [0.16, 0.84]);
+KAP_CI95 = quantile(KAP_boot, [0.025, 0.975]);
+GKI_med = median(GKI_boot);
+GKI_CI68 = quantile(GKI_boot, [0.16, 0.84]);
+GKI_CI95 = quantile(GKI_boot, [0.025, 0.975]);
+Ds_med = median(Ds_boot);
+Ds_CI95 = quantile(Ds_boot, [0.025, 0.975]);
+
+fprintf('KAP bootstrap: median = %.4f, 68%% CI [%.4f, %.4f], 95%% CI [%.4f, %.4f]\n', ...
+    KAP_med, KAP_CI68(1), KAP_CI68(2), KAP_CI95(1), KAP_CI95(2));
+fprintf('GKI bootstrap: median = %.4f, 68%% CI [%.4f, %.4f], 95%% CI [%.4f, %.4f]\n', ...
+    GKI_med, GKI_CI68(1), GKI_CI68(2), GKI_CI95(1), GKI_CI95(2));
+fprintf('Ds bootstrap: median = %.4f, 95%% CI [%.4f, %.4f]\n', Ds_med, Ds_CI95(1), Ds_CI95(2));
+
+% Bootstrap histogram for KAP
+if save_figures
+    figure('Position', [100,100,600,400]);
+    histogram(KAP_boot, 50, 'FaceColor', [0.2,0.4,0.8], 'EdgeColor','k');
+    hold on;
+    xline(KAP, 'r-', 'LineWidth', 3, 'DisplayName', 'Original');
+    xline(KAP_CI95(1), 'g--', 'LineWidth', 2, 'DisplayName', '95% CI');
+    xline(KAP_CI95(2), 'g--', 'LineWidth', 2);
+    xlabel('KAP'); ylabel('Frequency');
+    title(sprintf('Bootstrap KAP Distribution (%s)', cluster_name));
+    legend('Location','best'); grid on;
+    saveas(gcf, sprintf('%s_fig3_bootstrap.png', cluster_name), 'png');
+end
+
+%% 7. MONTE CARLO ERROR PROPAGATION
+fprintf('\n========================================\n');
+fprintf('7. MONTE CARLO SIMULATION (N=%d)\n', n_mc);
+fprintf('========================================\n\n');
+
+KAP_mc = zeros(n_mc,1);
+GKI_mc = zeros(n_mc,1);
+for i = 1:n_mc
+    sigma_r_mc = sigma_r + randn(size(sigma_r)).*err_sigma_r;
+    sigma_t_mc = sigma_t + randn(size(sigma_t)).*err_sigma_t;
+    sigma_mc = sigma + randn(size(sigma)).*err_sigma;
+    sigma_r_mc = abs(sigma_r_mc); sigma_t_mc = abs(sigma_t_mc); sigma_mc = abs(sigma_mc);
+    
+    % KAP
+    sr2 = sigma_r_mc.^2; st2 = sigma_t_mc.^2;
+    num_mc = st2 - sr2; den_mc = st2 + sr2;
+    err_sr2_mc = 2*sigma_r_mc.*err_sigma_r;
+    err_st2_mc = 2*sigma_t_mc.*err_sigma_t;
+    var_a_mc = (err_st2_mc).^2 + (err_sr2_mc).^2;
+    w_mc = 1 ./ (var_a_mc + 1e-12);
+    KAP_mc(i) = sum(w_mc .* num_mc) / sum(w_mc .* den_mc);
+    
+    % GKI
+    logS_mc = log(sigma_mc);
+    err_logS_mc = err_sigma ./ sigma_mc;
+    w_gki_mc = 1 ./ (err_logS_mc.^2 + 1e-12);
+    Xmc = [ones(size(logR)), logR];
+    theta_mc = (Xmc' * diag(w_gki_mc) * Xmc) \ (Xmc' * diag(w_gki_mc) * logS_mc);
+    GKI_mc(i) = theta_mc(2);
+end
+MC_KAP_std = std(KAP_mc);
+MC_GKI_std = std(GKI_mc);
+fprintf('KAP MC std = %.4f (analytic std = %.4f, diff = %.1f%%)\n', ...
+    MC_KAP_std, KAP_err, 100*abs(MC_KAP_std-KAP_err)/KAP_err);
+fprintf('GKI MC std = %.4f (analytic std = %.4f, diff = %.1f%%)\n', ...
+    MC_GKI_std, GKI_err, 100*abs(MC_GKI_std-GKI_err)/GKI_err);
+
+%% 8. JACKKNIFE SENSITIVITY
+fprintf('\n========================================\n');
+fprintf('8. JACKKNIFE SENSITIVITY\n');
+fprintf('========================================\n\n');
+
+KAP_jack = zeros(n_bins,1);
+GKI_jack = zeros(n_bins,1);
+for j = 1:n_bins
+    idx = setdiff(1:n_bins, j);
+    % KAP
+    sr_j = sigma_r(idx); st_j = sigma_t(idx);
+    sr2_j = sr_j.^2; st2_j = st_j.^2;
+    num_j = st2_j - sr2_j; den_j = st2_j + sr2_j;
+    err_sr2_j = 2*sr_j.*err_sigma_r(idx);
+    err_st2_j = 2*st_j.*err_sigma_t(idx);
+    var_a_j = err_st2_j.^2 + err_sr2_j.^2;
+    w_j = 1 ./ (var_a_j + 1e-12);
+    KAP_jack(j) = sum(w_j .* num_j) / sum(w_j .* den_j);
+    
+    % GKI
+    logR_j = log(R(idx));
+    logS_j = log(sigma(idx));
+    err_logS_j = err_sigma(idx) ./ sigma(idx);
+    w_gki_j = 1 ./ (err_logS_j.^2 + 1e-12);
+    Xj = [ones(size(logR_j)), logR_j];
+    theta_j = (Xj' * diag(w_gki_j) * Xj) \ (Xj' * diag(w_gki_j) * logS_j);
+    GKI_jack(j) = theta_j(2);
+end
+KAP_jack_mean = mean(KAP_jack);
+KAP_jack_se = sqrt((n_bins-1)/n_bins * sum((KAP_jack - KAP_jack_mean).^2));
+GKI_jack_mean = mean(GKI_jack);
+GKI_jack_se = sqrt((n_bins-1)/n_bins * sum((GKI_jack - GKI_jack_mean).^2));
+fprintf('KAP jackknife: %.4f ± %.4f (original %.4f)\n', KAP_jack_mean, KAP_jack_se, KAP);
+fprintf('GKI jackknife: %.4f ± %.4f (original %.4f)\n', GKI_jack_mean, GKI_jack_se, GKI);
+[max_KAP_delta, idx_KAP] = max(abs(KAP_jack - KAP));
+[max_GKI_delta, idx_GKI] = max(abs(GKI_jack - GKI));
+fprintf('Max influence on KAP: bin %d (Δ=%.4f)\n', idx_KAP, max_KAP_delta);
+fprintf('Max influence on GKI: bin %d (Δ=%.4f)\n', idx_GKI, max_GKI_delta);
+
+%% 9. RESIDUAL ANALYSIS AND STATISTICAL METRICS
+fprintf('\n========================================\n');
+fprintf('9. STATISTICAL ROBUSTNESS METRICS\n');
+fprintf('========================================\n\n');
+
+% Residuals from GKI fit
+residuals = logSigma - (alpha + GKI*logR);
+res_std = std(residuals);
+skewness_res = skewness(residuals);
+kurtosis_res = kurtosis(residuals);
+DW = sum(diff(residuals).^2) / sum(residuals.^2); % Durbin-Watson
+
+% Chi-squared statistics
+chi2_KAP = sum(((num./den) - KAP).^2 ./ (var_a./den.^2)); % approximate
+chi2_GKI = sum((residuals).^2 ./ err_logSigma.^2);
+dof_KAP = n_bins - 1;
+dof_GKI = n_bins - 2;
+chi2red_KAP = chi2_KAP / dof_KAP;
+chi2red_GKI = chi2_GKI / dof_GKI;
+pval_KAP = 1 - chi2cdf(chi2_KAP, dof_KAP);
+pval_GKI = 1 - chi2cdf(chi2_GKI, dof_GKI);
+
+% BIC
+n = n_bins;
+k_lin = 2;
+BIC_lin = n * log(chi2_GKI/n) + k_lin * log(n);
+k_const = 1;
+chi2_const = sum((logSigma - mean(logSigma)).^2 ./ err_logSigma.^2);
+BIC_const = n * log(chi2_const/n) + k_const * log(n);
+delta_BIC = BIC_lin - BIC_const;
+
+fprintf('Residuals: std = %.4f, skewness = %.3f, kurtosis = %.3f, DW = %.3f\n', ...
+    res_std, skewness_res, kurtosis_res, DW);
+fprintf('GKI: χ²/ν = %.3f/%d = %.3f, p = %.3f\n', chi2_GKI, dof_GKI, chi2red_GKI, pval_GKI);
+fprintf('ΔBIC = %.2f (', delta_BIC);
+if delta_BIC < -10, fprintf('very strong evidence for GKI model)\n');
+elseif delta_BIC < -6, fprintf('strong evidence)\n');
+elseif delta_BIC < -2, fprintf('positive evidence)\n');
+else fprintf('weak/inconclusive evidence)\n'); end
+
+%% 10. STATISTICAL POWER ANALYSIS
+alpha_level = 0.05;
+effect_size = 0.05;
+z_alpha = norminv(1 - alpha_level/2);
+power = 1 - normcdf(z_alpha - effect_size/KAP_err) + normcdf(-z_alpha - effect_size/KAP_err);
+fprintf('Power to detect |KAP| = 0.05: %.1f%%\n', 100*power);
+
+%% 11. ROBUSTNESS SCORE (as defined in paper, heuristics)
+score = 0;
+if abs(GKI/GKI_err) > 3, score = score + 20; end
+if R2 > 0.7, score = score + 15; end
+if chi2red_GKI < 2, score = score + 15; end
+if delta_BIC < -2, score = score + 10; end
+if abs(MC_KAP_std - KAP_err)/KAP_err < 0.2, score = score + 10; end
+if KAP_jack_se < 2*KAP_err, score = score + 10; end
+if power > 0.8, score = score + 10; end
+if pval_GKI > 0.05, score = score + 10; end
+fprintf('\nRobustness Score: %d/100\n', score);
+
+%% 12. EXPORT RESULTS
+% CSV table of radial profiles
+results_table = table(R, sigma, err_sigma, sigma_r, err_sigma_r, sigma_t, err_sigma_t, ...
+    beta, err_beta, 'VariableNames', {'R_arcsec','sigma','e_sigma','sigma_r','e_sigma_r',...
+    'sigma_t','e_sigma_t','beta','e_beta'});
+writetable(results_table, sprintf('%s_profile.csv', cluster_name));
+
+% Summary structure
+summary = struct();
+summary.cluster = cluster_name;
+summary.KAP = KAP; summary.KAP_err = KAP_err;
+summary.GKI = GKI; summary.GKI_err = GKI_err;
+summary.Ds = Ds;
+summary.R2 = R2;
+summary.n_bins = n_bins;
+summary.bootstrap_KAP_median = KAP_med;
+summary.bootstrap_KAP_CI95 = KAP_CI95;
+summary.bootstrap_GKI_median = GKI_med;
+summary.bootstrap_GKI_CI95 = GKI_CI95;
+summary.bootstrap_Ds_median = Ds_med;
+summary.bootstrap_Ds_CI95 = Ds_CI95;
+summary.robustness_score = score;
+summary.power = power;
+summary.delta_BIC = delta_BIC;
+save(sprintf('%s_results.mat', cluster_name), 'summary');
+
+fprintf('\n========================================\n');
+fprintf('Analysis completed successfully.\n');
+fprintf('Output files:\n');
+fprintf('  - %s_profile.csv\n', cluster_name);
+fprintf('  - %s_results.mat\n', cluster_name);
+if save_figures
+    fprintf('  - %s_fig1_profiles.png\n', cluster_name);
+    fprintf('  - %s_fig2_GKI_anisotropy.png\n', cluster_name);
+    fprintf('  - %s_fig3_bootstrap.png\n', cluster_name);
+end
+fprintf('========================================\n');
+
+

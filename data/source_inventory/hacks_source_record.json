@@ -1,0 +1,13 @@
+{
+  "source_name": "Hubble Space Telescope Atlases of Cluster Kinematics (HACKS)",
+  "source_product": "all-cluster velocity-dispersion table",
+  "source_url": "https://archive.stsci.edu/hlsps/hacks/velocity_dispersions/hlsp_hacks_hst_acs-wfc3_all_multi_v1.0_vdisp.txt",
+  "hlsp_landing_page": "https://archive.stsci.edu/hlsp/hacks",
+  "source_doi": "10.17909/jpfd-2m08",
+  "retrieved_utc_date": "2026-07-15",
+  "sha256": "7c9f08e8acd2872ff365870976dd72e8b1c2847cf67a004bc6800351b805cf75",
+  "rows": 716,
+  "targets": 57,
+  "redistributed_in_release": false,
+  "note": "The source file is not redistributed; the 20-cluster standardized derived table and a parent-product inventory are included."
+}

@@ -1,0 +1,8 @@
+filename,scope,article_number,content
+Fig01_KAP_primary.pdf,Main text,Figure 1,Primary normalized KAP
+Fig02_GKI_primary.pdf,Main text,Figure 2,Primary normalized GKI
+Fig03_Ds_raw_vs_corrected.pdf,Main text,Figure 3,Raw and noise-aware scatter diagnostics
+FigB1_dispersion_profiles_all20.pdf,Appendix,Figure B1,All 20 dispersion profiles
+FigB2_beta_profiles_all20.pdf,Appendix,Figure B2,All 20 local projected beta(R) profiles
+FigB3_KAP_beta_norm_identity.pdf,Appendix,Figure B3,KAP and normalized-anisotropy identity over full HST range
+FigB4_radial_interval_sensitivity.pdf,Appendix,Figure B4,Full-range versus primary KAP and GKI

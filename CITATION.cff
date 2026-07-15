@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "Please cite the associated article and this archived data-and-code release."
+title: "KAP-GKI HST globular-cluster data and code release"
+version: 1.1.0
+date-released: 2026-07-15
+type: dataset
+license: CC-BY-4.0
+authors:
+  - family-names: "Turaev"
+    given-names: "Sobir J."
+  - family-names: "Nuritdinov"
+    given-names: "Salakhutdin N."
+  - family-names: "Yuldoshev"
+    given-names: "Qudratillo X."
+keywords:
+  - globular clusters
+  - proper motions
+  - projected anisotropy
+  - velocity-dispersion gradients
+  - Hubble Space Telescope
+  - HACKS
+  - KAP
+  - GKI
+references:
+  - type: article
+    title: "Projected Kinematic Anisotropy and Velocity-Dispersion Gradients in Galactic Globular Clusters: An Interval-Defined Framework from HST Proper Motions"
+    authors:
+      - family-names: "Turaev"
+        given-names: "Sobir J."
+      - family-names: "Nuritdinov"
+        given-names: "Salakhutdin N."
+      - family-names: "Yuldoshev"
+        given-names: "Qudratillo X."

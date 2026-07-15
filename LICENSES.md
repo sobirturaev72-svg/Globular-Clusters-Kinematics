@@ -1,0 +1,3 @@
+- Code: `licenses/MIT.txt`
+- Original documentation and derived tables: `licenses/CC-BY-4.0.txt`
+- Third-party measurements: see `THIRD_PARTY_NOTICE.md`

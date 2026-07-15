@@ -1,0 +1,6 @@
+reproducibility_status,fractional_noise,false_significant_KAP_percent
+reported_reference_only_original_random_state_unavailable,0.01,0.0
+reported_reference_only_original_random_state_unavailable,0.05,0.2
+reported_reference_only_original_random_state_unavailable,0.1,1.5
+reported_reference_only_original_random_state_unavailable,0.2,4.5
+reported_reference_only_original_random_state_unavailable,0.5,8.0

@@ -1,0 +1,6 @@
+reproducibility_status,test,scenario,n_realisations,KAP_mean,KAP_std,GKI_mean,GKI_std,Ds_mean,Ds_std,note
+reported_reference_only_original_random_state_unavailable,A,isotropic_flat,100,-0.004,0.012,-0.008,0.02,,,0 false significant KAP classifications
+reported_reference_only_original_random_state_unavailable,B,isotropic_declining,100,0.003,0.011,-0.149,0.016,,,input GKI=-0.15
+reported_reference_only_original_random_state_unavailable,C,radial_declining,100,-0.171,0.018,-0.148,0.015,,,sigma_r=1.2 sigma_t
+reported_reference_only_original_random_state_unavailable,D,tangential_declining,100,0.169,0.019,-0.149,0.014,,,sigma_t=1.2 sigma_r
+reported_reference_only_original_random_state_unavailable,E,sign_changing_local_anisotropy,100,0.008,0.025,-0.147,0.018,0.31,0.08,near-zero net KAP

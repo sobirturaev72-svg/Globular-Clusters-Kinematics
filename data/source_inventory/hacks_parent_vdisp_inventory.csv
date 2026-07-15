@@ -1,0 +1,58 @@
+cluster,n_bins_full_hacks,Rmin_arcsec,Rmax_arcsec,Nstar_min,Nstar_median,Nstar_max,all_required_values_finite,included_in_article_20,parent_selection_exclusion_reason
+NGC0104,28,8.0216,158.5868,23,386.0,386,True,True,included
+NGC0288,5,13.8853,80.8034,42,111.0,112,True,False,not reconstructed in this release
+NGC0362,19,7.1193,90.796,147,177.0,178,True,True,included
+NGC1261,20,3.1141,99.6557,49,160.0,161,True,True,included
+NGC1851,20,4.3529,89.8988,28,247.5,248,True,True,included
+NGC2298,6,6.0082,86.7106,48,51.0,59,True,False,not reconstructed in this release
+NGC2808,24,3.475,101.5505,64,370.0,370,True,True,included
+NGC3201,6,14.9638,97.6195,44,152.0,152,True,False,not reconstructed in this release
+NGC4590,5,13.5896,75.9885,69,83.0,84,True,False,not reconstructed in this release
+NGC4833,12,7.1847,91.1899,41,171.0,171,True,False,not reconstructed in this release
+NGC5024,17,7.5795,100.7875,80,231.0,231,True,False,not reconstructed in this release
+NGC5053,5,26.5938,101.4658,49,50.0,50,True,False,not reconstructed in this release
+NGC5272,17,6.8217,89.7092,114,208.0,209,True,False,not reconstructed in this release
+NGC5286,11,12.6235,78.6781,114,115.0,115,True,False,not reconstructed in this release
+NGC5466,5,24.8686,99.0486,79,80.0,80,True,False,not reconstructed in this release
+NGC5897,5,25.2152,79.0089,58,59.0,59,True,False,not reconstructed in this release
+NGC5904,19,3.7621,104.368,54,238.0,239,True,True,included
+NGC5927,17,6.8315,106.5675,88,223.0,224,True,True,included
+NGC5986,17,7.1035,87.9152,124,212.0,213,True,True,included
+NGC6093,13,7.5567,73.9453,100,148.0,193,True,False,not reconstructed in this release
+NGC6101,8,14.463,106.348,66,118.0,119,True,False,not reconstructed in this release
+NGC6121,6,13.4955,106.7347,57,110.0,110,True,False,not reconstructed in this release
+NGC6144,5,14.3554,78.4436,62,131.0,132,True,False,not reconstructed in this release
+NGC6171,6,7.0431,81.74,42,199.0,200,True,False,not reconstructed in this release
+NGC6205,21,6.8744,100.1628,134,256.0,257,True,True,included
+NGC6218,11,10.4237,92.7132,76,126.0,126,True,False,not reconstructed in this release
+NGC6254,16,10.752,96.1468,116,116.0,120,True,True,included
+NGC6304,8,6.636,73.9388,68,117.0,117,True,False,not reconstructed in this release
+NGC6341,22,3.2414,100.7625,54,146.0,146,True,False,not reconstructed in this release
+NGC6352,6,11.6906,76.8893,57,147.0,148,True,False,not reconstructed in this release
+NGC6362,10,16.6287,97.4544,109,109.0,110,True,False,not reconstructed in this release
+NGC6366,3,35.8006,83.4589,95,95.0,95,True,False,not reconstructed in this release
+NGC6388,31,6.4747,108.8635,48,398.0,398,True,True,included
+NGC6397,7,6.2001,98.8607,42,96.0,96,True,False,not reconstructed in this release
+NGC6441,27,7.0728,110.1411,49,230.0,230,True,True,included
+NGC6496,3,21.9419,63.641,88,88.0,89,True,False,not reconstructed in this release
+NGC6535,4,9.0889,71.1339,39,39.0,39,True,False,not reconstructed in this release
+NGC6541,21,3.7535,98.5503,93,182.0,182,True,True,included
+NGC6584,5,11.7817,74.4035,99,159.0,160,True,False,not reconstructed in this release
+NGC6624,18,3.7576,83.4855,88,134.0,134,True,True,included
+NGC6637,22,3.7959,87.7647,62,166.0,177,True,True,included
+NGC6652,7,6.5678,61.979,103,103.0,161,True,False,not reconstructed in this release
+NGC6656,16,7.4699,107.6606,58,205.0,206,True,False,not reconstructed in this release
+NGC6681,14,2.8798,86.5454,121,139.0,192,True,True,included
+NGC6715,16,7.7625,74.9231,90,156.0,157,True,True,included
+NGC6717,5,10.0803,77.2971,59,60.0,60,True,False,not reconstructed in this release
+NGC6723,11,10.1496,84.6906,91,110.0,110,True,True,included
+NGC6752,18,6.1221,153.2523,94,134.0,134,True,False,not reconstructed in this release
+NGC6779,5,16.4364,72.1598,89,89.0,89,True,False,not reconstructed in this release
+NGC6791,3,42.8379,103.0133,46,46.0,46,True,False,not reconstructed in this release
+NGC6809,7,21.1004,88.1848,109,109.0,110,True,False,not reconstructed in this release
+NGC6838,4,23.5282,83.9625,99,99.5,100,True,False,not reconstructed in this release
+NGC6934,16,6.9945,105.7034,109,110.0,131,True,False,not reconstructed in this release
+NGC6981,3,26.8042,73.0595,56,57.0,57,True,False,not reconstructed in this release
+NGC7078,21,3.8931,99.8755,61,285.0,286,True,True,included
+NGC7089,26,7.4801,89.0721,108,191.0,191,True,False,not reconstructed in this release
+NGC7099,13,4.7085,87.3989,100,101.0,101,True,True,included

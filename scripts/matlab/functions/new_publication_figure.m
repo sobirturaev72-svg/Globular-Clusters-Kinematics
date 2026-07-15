@@ -1,0 +1,6 @@
+function fig = new_publication_figure(cfg, widthIn, heightIn)
+%NEW_PUBLICATION_FIGURE Create a white publication-sized figure.
+fig = figure('Visible', cfg.visible, 'Color', cfg.backgroundColor, ...
+    'Units', 'inches', 'Position', [0.5 0.5 widthIn heightIn], ...
+    'PaperPositionMode', 'auto', 'Renderer', 'painters');
+end

@@ -1,0 +1,12 @@
+claim_id,authoritative_value,article_or_release_location
+sample_size,20 clusters,README; Table 1; all results
+profile_rows,395,data/derived/profiles_hacks_20clusters.csv
+parent_hacks_targets,57 targets (56 GCs + NGC 6791),data/source_inventory/hacks_parent_vdisp_inventory.csv
+primary_KAP_counts,5 radial; 15 zero-consistent; 0 tangential,Table 2; Figure 1; Conclusions
+full_KAP_counts,7 radial; 13 zero-consistent; 0 tangential,Table A2; Figure B4
+primary_GKI_counts,18 negative; 2 flat/zero-consistent,Table 2; Figure 2; Conclusions
+primary_Ds_corr_counts,11 zero; 9 non-zero,Table 2; Figure 3; Conclusions
+interval_changes,NGC6388 and NGC6441 radial only in full range,Table 2 vs Table A2; Figure B4
+NGC6388_bins,31 full; 13 primary,Table A1; source audit
+KAP_identity,KAP equals dispersion-scale-weighted -beta_norm,Equation 3; Table A4; Figure B3
+synthetic_status,reported reference only; original random state unavailable,docs/SYNTHETIC_VALIDATION.md

@@ -1,0 +1,4 @@
+case,n_bins,Rmin_arcsec,Rmax_arcsec,KAP,GKI,Ds_raw,note
+old_manuscript_table_A1,12,7.2,91.2,-0.0019,-0.0892,3.93,values quoted in submitted manuscript
+uploaded_HACKS_profile_full,31,6.4747,108.8635,-0.04499157904579541,-0.23090463445557308,0.14499671586141802,all NGC6388 bins in uploaded velocity-dispersion table
+uploaded_HACKS_profile_R_le_Rh,13,6.4747,46.4154,-0.02580854905433135,-0.1686922246455492,0.22297474374727236,"normalized-radius subset R <= R_h,l"

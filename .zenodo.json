@@ -1,0 +1,43 @@
+{
+  "title": "KAP-GKI HST globular-cluster data and code release",
+  "upload_type": "dataset",
+  "access_right": "open",
+  "description": "Derived projected proper-motion profiles, interval-defined KAP and GKI diagnostics, noise-aware profile-scatter measurements, article tables, vector figures, validation summaries, and reproducible analysis code associated with the article \"Projected Kinematic Anisotropy and Velocity-Dispersion Gradients in Galactic Globular Clusters: An Interval-Defined Framework from HST Proper Motions\".",
+  "creators": [
+    {
+      "name": "Turaev, Sobir J."
+    },
+    {
+      "name": "Nuritdinov, Salakhutdin N."
+    },
+    {
+      "name": "Yuldoshev, Qudratillo X."
+    }
+  ],
+  "keywords": [
+    "globular clusters",
+    "proper motions",
+    "projected anisotropy",
+    "velocity dispersion",
+    "HST",
+    "HACKS",
+    "KAP",
+    "GKI"
+  ],
+  "license": "cc-by-4.0",
+  "version": "1.1.0",
+  "publication_date": "2026-07-15",
+  "language": "eng",
+  "related_identifiers": [
+    {
+      "identifier": "10.17909/jpfd-2m08",
+      "relation": "isDerivedFrom",
+      "resource_type": "dataset"
+    },
+    {
+      "identifier": "https://github.com/sobirturaev72-svg/Globular-Clusters-Kinematics",
+      "relation": "isSupplementTo",
+      "resource_type": "software"
+    }
+  ]
+}

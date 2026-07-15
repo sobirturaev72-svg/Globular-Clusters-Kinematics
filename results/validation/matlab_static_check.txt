@@ -1,0 +1,3 @@
+Static source-alignment note for MATLAB figure layer. MATLAB was not executed in the build environment.
+
+PASS

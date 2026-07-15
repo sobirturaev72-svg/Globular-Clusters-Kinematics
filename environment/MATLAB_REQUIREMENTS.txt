@@ -1,0 +1,4 @@
+Recommended: MATLAB R2021a or later
+Required toolboxes: none
+Exports: PDF, PNG (400 dpi), EPS, FIG
+Tested numerically by static CSV validation; MATLAB runtime execution required locally.
